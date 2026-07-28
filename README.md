@@ -276,7 +276,7 @@ reverse_lookup_address_cache:
 
 
 
-# Example Notification Script
+## Example Notification Script
 
 ```
 #!/bin/bash
