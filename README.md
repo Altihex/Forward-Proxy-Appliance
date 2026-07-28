@@ -172,7 +172,7 @@ In order to scan application accounts a switch role needs to be configured in ea
 
 The configuration and the connections the proxy will allow through sequentially are as follows:
 
-**allow\_all:**  when set to true it will allow all connections through the proxy. It will log where the connection would be denied of set to false in the fpa-info.log
+**allow\_all:**  when set to true it will allow all connections through the proxy. It will log where the connection would be denied if set to false in the fpa-info.log
 
 **connection: direction: outbound:**
 
@@ -245,21 +245,21 @@ host_tag_profiles:
 		- ubuntu
 		- kibana
 
-# Domain groups are linked to host_tag_profiles above**
+# Domain groups are linked to host_tag_profiles above
 domain_groups:
 	ubuntu:
 		- ubuntu.com
 		- eu-west-2.ec2.archive.ubuntu.com
-		- security.ubuntu.com**
-		- us.archive.ubuntu.com**
-		- archive.ubuntu.com**
-		- api.snapcraft.io**
+		- security.ubuntu.com
+		- us.archive.ubuntu.com
+		- archive.ubuntu.com
+		- api.snapcraft.io
 
 	elastic:
 		- artifacts.elastic.co
 
 	kibana:
-		- artifacts.elastic.co**
+		- artifacts.elastic.co
 
 	ntp:
 		- ntp.ubuntu.com
