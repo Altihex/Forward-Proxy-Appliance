@@ -180,7 +180,7 @@ The configuration and the connections the proxy will allow through sequentially 
 
 ​	**transports:** This is a list of allowed transports, if the transport isn’t on this list the proxy will set the connection to **DENIED**. Currently tcp, udp and icmp are supported.
 
-​	**ports:** This is list of allowed transports and ports. The list value must be separated by a ‘/’  character
+​	**ports:** This is list of allowed transports and ports. The list value must be separated by a ‘/’  character. If the transport and port are not configured the proxy will set the connection to **DENIED**.
 
 ​	**protocols:** This is a list of allowed TLS versions. Note: The port list must have an entry  of tcp/443.  At present **ECH** is not supported, connections with **ECH** enabled will be blocked on the proxy.
 
@@ -265,7 +265,8 @@ domain_groups:
 		- ntp.ubuntu.com
 		- 183.ip-51-89-151.eu
 
-# With some protocols there is no way to verify the domain name used in the domain_groups. This allows them to be looked up in advance and saved in the configuration.
+# With some protocols there is no way to verify the domain name used in the domain_groups. 
+# This allows them to be looked up in advance and saved in the configuration.
 reverse_lookup_address_cache:
 	- ntp.ubuntu.com
 	- 183.ip-51-89-151.eu
