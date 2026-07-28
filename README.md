@@ -273,3 +273,232 @@ reverse_lookup_address_cache:
 	
 	
 ```
+
+
+
+# Example Notification Script
+
+```
+#!/bin/bash
+
+#################################################################################################
+# This program is provided as is it is supplied in its current condition,
+# including any flaws, bugs, or defects, without any warranties or guarantees of performance,
+# quality, or suitability. The developer disclaims all responsibility for errors,
+# and the user assumes all risks associated with its use.
+#################################################################################################
+
+#This can be set to any port - Ensure you security groups and NACL's are set to allow traffic
+NOTIFICATION_PORT="7000" 
+NOTIFICATION_ADDRESS="198.51.100.1" # Default bogon address
+
+#----------------------------------------------
+# Do not chang anything beyond this point -----
+#----------------------------------------------
+
+ACCOUNT_ID="unknown"
+REGION="unknown"
+INSTANCE_TYPE="unknown"
+TAG_INFO="unknown"
+META_HOST="http://169.254.169.254"
+TOKEN_URL="${META_HOST}/latest/api/token"
+TOKEN_HEADER="X-aws-ec2-metadata-token-ttl-seconds: 21600"
+REQUEST_HEADER="X-aws-ec2-metadata-token: "
+CURL_USER_AGENT="fpa-client/1.0.0"
+IS_EC2="true"
+
+export SILENT="false"
+export TOKEN="unknown"
+export TEST="false"
+export TEST_URL=""
+export INSTANCE_ID="unknown"
+export ITEST="false"
+
+echoe(){
+	if [ "${SILENT}" == "false" ];then
+   	echo $1
+	fi
+}
+
+IS_KUBERNETES="false"
+KUBE_METADATA_AVAILABLE="false"
+env|grep KUBERNETES 1>&2 2>/dev/null
+if [ $? == 0 ];then
+	IS_KUBERNETES="true"
+	IS_EC2="false"
+	if [ "${ALTIHEX_FPA_TAGGED}" == "true" ];then
+		if [ "${ALTIHEX_FPA_CLUSTER_NAME}" != "" ];then
+			if [ "${ALTIHEX_FPA_REGION}" != "" ];then
+				if [ "${ALTIHEX_FPA_ACCOUNT_ID}" != "" ];then	
+					KUBE_METADATA_AVAILABLE="true"
+				else
+					echoe "Missing environment variable ALTIHEX_FPA_ACCOUNT_ID"
+				fi
+			else
+				echoe "Missing environment variable ALTIHEX_FPA_REGION"
+			fi 
+		else 
+			echoe "Missing environment variable ALTIHEX_FPA_CLUSTER_NAME"	
+		fi
+	else
+		echoe "Pod is not tagged for Altihex FPA missing environment variable ALTIHEX_FPA_TAGGED=true"
+	fi
+fi
+
+
+
+ECS_METADATA_AVAILABLE="false"
+if [ "$ECS_CONTAINER_METADATA_URI_V4" != "" ];then
+	ECS_METADATA_AVAILABLE="true"
+	IS_EC2="false"
+	echoe "ECS Metadata is available"
+fi
+
+
+exeCheck(){
+	for utility in jq nc curl
+	do
+		which ${utility} 1>/dev/null
+		if [ $? == 1 ]; then
+			echoe "ERROR: Missing ${utility} please install"
+   		return 1
+		fi
+	done
+	return 0
+}
+
+exploreImdbv2Info() {
+
+	TOKEN=$(curl -s -X PUT "${META_HOST}/latest/api/token" -H "${TOKEN_HEADER}" -A "${CURL_USER_AGENT}" )
+
+	curl -s -H "${REQUEST_HEADER}${TOKEN}" -A "${CURL_USER_AGENT}" ${META_HOST}/latest/meta-data/
+	echo
+    echo -----
+    echo
+    echo $1
+	curl -s -H "${REQUEST_HEADER}${TOKEN}" -A "${CURL_USER_AGENT}" ${META_HOST}/latest/meta-data/$1
+    echo
+    echo
+}
+
+
+getImdbv2Token(){
+	echoe "Retrieving Token for Imdbv2"
+	TOKEN=$(curl -s -X PUT "${META_HOST}/latest/api/token" -H "${TOKEN_HEADER}" -A "${CURL_USER_AGENT}" )
+  	if [ $? != 0 ];then
+		return 1
+	fi
+	return 0
+}
+
+getImdbv2Info() {
+	echoe "Retrieving IMDBv2 info"
+	
+	REGION=$(curl -s -H "${REQUEST_HEADER}${TOKEN}" -A "${CURL_USER_AGENT}" ${META_HOST}/latest/meta-data/placement/region)
+	if [ $? != 0 ];then
+		echo "region retrieval failed"
+		return 1
+	fi
+
+	mac_addresses=$(curl -s -H "${REQUEST_HEADER}${TOKEN}" -A "${CURL_USER_AGENT}" ${META_HOST}/latest/meta-data/network/interfaces/macs)
+	if [ $? != 0 ];then
+		echo "network macs retrieval failed"
+		return 1
+	fi
+
+	for mac in $(echo ${mac_addresses})
+	do
+		ACCOUNT_ID=$(curl -s -H "${REQUEST_HEADER}${TOKEN}" -A "${CURL_USER_AGENT}" ${META_HOST}/latest/meta-data/network/interfaces/macs/${mac}/owner-id)
+		break
+	done
+
+	INSTANCE_ID=$(curl -s -H "${REQUEST_HEADER}${TOKEN}" -A "${CURL_USER_AGENT}" ${META_HOST}/latest/meta-data/instance-id)
+	if [ $? != 0 ];then
+		echo "instance-id retrieval failed"
+		return 1
+	fi
+
+	INSTANCE_TYPE="ec2"
+
+	return 0
+}
+
+
+sendNotification() {
+	echoe "Sending startup notification"
+	echo -n "|${ACCOUNT_ID}|${REGION}|${INSTANCE_TYPE}|${INSTANCE_ID}|" | nc -u -w0 ${NOTIFICATION_ADDRESS} ${NOTIFICATION_PORT}
+}
+
+
+################
+# Main program #
+################
+
+exeCheck
+if [ $? == 1 ];then
+	echoe "ERROR: missing executables"
+	exit 4
+else
+	echoe "Executable check passed"
+fi
+
+if [ "${IS_EC2}" == "true" ];then 
+	if [ "${TEST}" == "true" ];then
+		exploreImdbv2Info ${TEST_URL}
+	fi
+
+	if [ "${ITEST}" == "false" ];then
+		getImdbv2Token
+		if [ $? != 0 ];then
+			echoe "ERROR: Token retrieval failed - Check permissions"
+			exit 5
+		else
+			echoe "Token retrieval passed"
+		fi
+
+		getImdbv2Info
+		if [ $? != 0 ];then
+			echoe "ERROR: instance-id retrieval failed - Check permissions"
+			exit 6
+		fi
+	fi
+fi
+
+if [ "${ECS_METADATA_AVAILABLE}" == "true" ];then
+
+	ECS_METADATA=$(curl -s ${ECS_CONTAINER_METADATA_URI_V4})	
+	ECS_CONTAINER_ARN=$(echo ${ECS_METADATA} |jq -r .ContainerARN ) 
+	REGION=$(echo $ECS_CONTAINER_ARN|cut -d':' -f 4)
+	ACCOUNT_ID=$(echo $ECS_CONTAINER_ARN|cut -d':' -f 5)
+	container_string=$(echo $ECS_CONTAINER_ARN|cut -d':' -f 6)
+	INSTANCE_ID=$container_string
+	INSTANCE_TYPE="ecs"
+fi
+
+if [ "${KUBE_METADATA_AVAILABLE}" == "true" ];then
+	NAMESPACE=$(cat  /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+	REGION=${ALTIHEX_FPA_REGION}
+	INSTANCE_ID="${ALTIHEX_FPA_CLUSTER_NAME}/${NAMESPACE}/${HOSTNAME}"
+	ACCOUNT_ID=${ALTIHEX_FPA_ACCOUNT_ID}
+	INSTANCE_TYPE="eks"
+fi
+
+
+if [ "${KUBE_METADATA_AVAILABLE}" == "true" ] || [ "${ECS_METADATA_AVAILABLE}" == "true" ] || [ "${IS_EC2}" == "true" ];then
+	echoe
+	echoe "==================================="
+	echoe "Notification variables:"
+	echoe "  instance-id:   ${INSTANCE_ID}"
+	echoe "  account-arn:   ${ACCOUNT_ID}"
+	echoe "  region:        ${REGION}"
+	echoe "  instance_type: ${INSTANCE_TYPE}"
+	echoe "==================================="
+	echoe
+
+	sendNotification
+fi
+
+exit 0
+
+```
+
