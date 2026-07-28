@@ -224,7 +224,7 @@ connection:
         - tcp/443
         - udp/53
         - tcp/53
-        - udp/123**
+        - udp/123
       # Allowed TLS protocols
       protocols:
         - TLSv1_3
