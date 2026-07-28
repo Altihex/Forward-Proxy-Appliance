@@ -1,6 +1,6 @@
 
 
-# ![FPA - Export](/al/altihex-FPA/Documentation/README/FPA - Export.svg)    Forward Proxy Appliance
+# ![FPA-LOGO](fpa-logo.svg)    Forward Proxy Appliance
 
 ## Why use it?
 
@@ -81,7 +81,7 @@ The appliance is run as part of a private link / endpoint service with a gateway
 
 
 
-![FPA - Design](/al/altihex-FPA/Documentation/README/FPA - Design.svg)
+![FPA-Design](fpa-design.svg)
 
 ### Consumer account 
 
