@@ -1,6 +1,6 @@
 
 
-# ![FPA-LOGO](fpa-logo.svg)    Forward Proxy Appliance
+# ![FPA-LOGO](fpa-logo.svg)    <span style="color:midnightblue">**Forward Proxy Appliance**</span>
 
 ## Why use it?
 
@@ -20,15 +20,15 @@
 
 ## What is it? 
 
-- This is a forward proxy appliance that is configurable using host groups and domains in a separate security account behind a service endpoint and gateway loadbalancer. Instance, containers and pods are configured with metadata tags to select host profiles for internet access.
+- This is a forward proxy appliance that is configurable using host groups and domains in a separate security account behind a service endpoint and gateway load balancer. Instance, containers and pods are configured with metadata tags to select host profiles for internet access.
 
 - Each application account will have their private outbound networked appliance traffic routed through the service endpoint for filtering. The proxy is transparent.  
 
 - The proxy is low maintenance as host profiles can be tagged or in the case of pods annotated to a specific host profile to allow access to curated list of domains.
 
-- When an instance, container or pod starts up for the first time a simple notification Api can be used to configure the proxy to allow outbound connections. This allows for automated access based on profiles. 
+- When an instance, container or pod starts up for the first time a simple notification API can be used to configure the proxy to allow outbound connections. This allows for automated access based on profiles. 
 
-- The appliances are clustered and with minimal configuration will gather configuration information across all your accounts. The cluster manages this from a single node reducing the number of AWS api requests and allowing horizontal cluster scaleability. 
+- The appliances are clustered and with minimal configuration will gather configuration information across all your accounts. The cluster manages this from a single node reducing the number of AWS API requests and allowing horizontal cluster scale ability. 
 
 ## How is this usually addressed?
 
@@ -38,7 +38,7 @@
 
 ## Other less commonly used approaches
 
-- Use Squid and manually configure each subnet and host name. This will be either too wide or require intensive amounts of labour. Most likely for EC2 Auto Scaling Groups,  ECS containers and EKS pods will be un-maintainable and will cause production issues.  
+- Use Squid and manually configure each subnet and host name. This will be either too wide or require intensive amounts of labour. Most likely for EC2 Auto Scaling Groups,  ECS containers and EKS pods will be difficult to maintain and will cause production issues.  
 
 - Configure the instance firewall. If the instance is fully compromised this can be disabled by an attacker.
 
@@ -55,7 +55,7 @@
 
 - No support for the Indian market at present. This will be addressed in the future.
 
-- Currently only the following instance types are supported for the apliance:
+- Currently only the following instance types are supported for the appliance:
 
   - t3.large
 
@@ -101,7 +101,7 @@ There are two executables, fpa and fpa-cluster.
 
 This controls the cluster functionality and configuration loading and scanning. 
 
-Each FPA instance needs to be uniquely tagged using the altihex-FPA-cluster-node key and name. The name is used for unique cloudwatch logs. If you do not tag the instances and set the quorum to more than 1. Then notifications can fail, the notifications api when sent to an fpa proxy node will allow the proxy configuration to be updated on the fly. This is needed when new EC2, ECS or EKS nodes are started.
+Each FPA instance needs to be uniquely tagged using the altihex-FPA-cluster-node key and name. The name is used for unique cloudwatch logs. If you do not tag the instances and set the quorum to more than 1. Then notifications can fail, the notifications API when sent to an fpa proxy node will allow the proxy configuration to be updated on the fly. This is needed when new EC2, ECS or EKS nodes are started.
 
 ### Healthcheck
 
@@ -164,7 +164,9 @@ Due to the non AWS nature of kubernetes pods the following environment variables
 
 ## Scanning
 
-In order to scan application accounts a switch role needs to be configured in each account that you want to scan. This is entered into the scan\_accounts: key in the configuration file. When the cluster process starts up it first forms a cluster, then once the controller node is established it will scan each account by switching roles doing a scan for EC2, ECS and EKS nodes. The result of the scan is fed into a shared configuration and this in turn is broadcast to the other cluster nodes.  There is example code for the security account and an attached node in the repository. **LOCATION HERE**
+In order to scan application accounts a switch role needs to be configured in each account that you want to scan. This is entered into the scan\_accounts: key in the configuration file. When the cluster process starts up it first forms a cluster, then once the controller node is established it will scan each account by switching roles doing a scan for EC2, ECS and EKS nodes. The result of the scan is fed into a shared configuration and this in turn is broadcast to the other cluster nodes.  There is example code for the security account and an attached node in the repository. 
+
+
 
 # Configuration file
 
@@ -182,13 +184,13 @@ The configuration and the connections the proxy will allow through sequentially 
 
 ​	**protocols:** This is a list of allowed TLS versions. Note: The port list must have an entry  of tcp/443.  At present **ECH** is not supported, connections with **ECH** enabled will be blocked on the proxy.
 
-**scan\_accounts:** This is a list of accounts to be scanned for nodes, The first entry on the list is the Arn of the switch role. A space separated parameter that sets region is also required. Each account / region will be scanned using the switch role arn. You can put duplicate accounts with different switch roles and scan using the alternate roles.
+**scan\_accounts:** This is a list of accounts to be scanned for nodes, The first entry on the list is the Arn of the switch role. A space separated parameter that sets region is also required. Each account / region will be scanned using the switch role Arn. You can put duplicate accounts with different switch roles and scan using the alternate roles.
 
 **host\_tag\_profiles:** These are the profiles as listed in the node tag / attribute to configure allowed domains. Each host\_tag profile list value will link to a domain\_group: list key
 
-**domain\_groups:** The keys match the host\_tag\_profiles and allow multiple domains to be listed against a host\_tag\_profile. Using ubuntu as an example this allows all the ubuntu package domains to be maintained in one list.
+**domain\_groups:** The keys match the host\_tag\_profiles and allow multiple domains to be listed against a host\_tag\_profile. Using Ubuntu as an example this allows all the Ubuntu package domains to be maintained in one list.
 
-**reverse\_lookup\_address\_cache:** The list keys are used to update the configurations with ip addresses that cannot be verified in the sending packet, at present these are http: or https: connections. The ip addresses are loaded into the configuration and looked up in advance.
+**reverse\_lookup\_address\_cache:** The list keys are used to update the configurations with ip addresses that cannot be verified in the sending packet, at present these are http: or https: connections. The IP addresses are loaded into the configuration and looked up in advance.
 
 
 ## Example Configuration file
