@@ -502,3 +502,73 @@ exit 0
 
 ```
 
+# IAM Permissions
+
+## Example Appliance IAM Profile
+
+This is written for Open Tofu. This will enable scanning of an account by using a switch role
+
+```
+resource "aws_iam_role" "switch-role-fpa" {
+  provider = aws.switch-destination-account
+  name     = "switch-role-destination-account"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = ["sts:AssumeRole", "sts:TagSession"]
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          AWS = [
+            "arn:aws:iam::<source-account-id>:role/iam-role-main"
+          ]
+        }
+      }
+    ]
+  })
+}
+
+
+# Policy attachment
+resource "aws_iam_role_policy_attachment" "switch-role-fpa" {
+  provider   = aws.switch-destination-account
+  role       = aws_iam_role.switch-role-fpa.name
+  policy_arn = aws_iam_policy.scan-permissions.arn
+}
+
+# Policy
+resource "aws_iam_policy" "scan-permissions" {
+  provider    = aws.switch-destination-account
+  name        = "altihex-fpa-scan-permissions"
+  description = "Allow the altihex fpa to scan accounts"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = ""
+        Effect = "Allow"
+        Action = [
+          "ec2:DescribeVpcEndpoints",
+          "ec2:DescribeAddresses",
+          "ec2:DescribeInstances",
+          "ec2:DescribeSubnets",
+          "ecs:ListClusters",
+          "ecs:ListTasks",
+          "ecs:DescribeTasks",
+          "eks:ListClusters",
+          "eks:DescribeCluster",
+          "eks:ListClusters"
+        ],
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+```
+
+
+
+
+
