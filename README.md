@@ -231,47 +231,46 @@ connection:
         - TLSv1_2 
 
 scan_accounts:
-	# ARN of switch role account / region
-	- arn:aws:iam::<scan account id>:role/altihex-FPA-switch-role
-	  eu-west-2
-	# Profiles are linked to a specific domain_groups key. 
-
+    # ARN of switch role account / region
+    - arn:aws:iam::<scan account id>:role/altihex-FPA-switch-role
+      eu-west-2
+    
+# Profiles are linked to a specific domain_groups key. 
 host_tag_profiles:
-	dbserver:
-		- ubuntu
-		- elastic
-		- ntp
+    dbserver:
+        - ubuntu
+        - elastic
+        - ntp
     dbclient:
-		- ubuntu
-		- kibana
+        - ubuntu
+        - kibana
 
 # Domain groups are linked to host_tag_profiles above
 domain_groups:
-	ubuntu:
-		- ubuntu.com
-		- eu-west-2.ec2.archive.ubuntu.com
-		- security.ubuntu.com
-		- us.archive.ubuntu.com
-		- archive.ubuntu.com
-		- api.snapcraft.io
+    ubuntu:
+        - ubuntu.com
+        - eu-west-2.ec2.archive.ubuntu.com
+        - security.ubuntu.com
+        - us.archive.ubuntu.com
+        - archive.ubuntu.com
+        - api.snapcraft.io
+    
+    elastic:
+        - artifacts.elastic.co
 
-	elastic:
-		- artifacts.elastic.co
-
-	kibana:
-		- artifacts.elastic.co
-
-	ntp:
-		- ntp.ubuntu.com
-		- 183.ip-51-89-151.eu
-
+    kibana:
+        - artifacts.elastic.co
+    
+    ntp:
+        - ntp.ubuntu.com
+        - 183.ip-51-89-151.eu
+        
 # With some protocols there is no way to verify the domain name used in the domain_groups. 
 # This allows them to be looked up in advance and saved in the configuration.
 reverse_lookup_address_cache:
-	- ntp.ubuntu.com
-	- 183.ip-51-89-151.eu
-	
-	
+    - ntp.ubuntu.com
+    - 183.ip-51-89-151.eu
+    
 ```
 
 
