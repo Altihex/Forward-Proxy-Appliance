@@ -146,7 +146,7 @@ Due to the non AWS nature of kubernetes pods the following environment variables
 
 **env:**
 
-```
+```yaml
 
 - name: ALTIHEX_FPA_TAGGED
   value: "true"
@@ -184,7 +184,7 @@ The configuration and the connections the proxy will allow through sequentially 
 
 ​	**protocols:** This is a list of allowed TLS versions. Note: The port list must have an entry  of tcp/443.  At present **ECH** is not supported, connections with **ECH** enabled will be blocked on the proxy.
 
-**scan\_accounts:** This is a list of accounts to be scanned for nodes, The first entry on the list is the Arn of the switch role. A space separated parameter that sets region is also required. Each account / region will be scanned using the switch role Arn. You can put duplicate accounts with different switch roles and scan using the alternate roles.
+**scan\_accounts:** This is a list of accounts to be scanned for nodes, The first entry on the list is the ARN of the switch role. A space separated parameter that sets region is also required. Each account / region will be scanned using the switch role ARN. You can put duplicate accounts with different switch roles and scan using the alternate roles.
 
 **host\_tag\_profiles:** These are the profiles as listed in the node tag / attribute to configure allowed domains. Each host\_tag profile list value will link to a domain\_group: list key
 
@@ -194,7 +194,7 @@ The configuration and the connections the proxy will allow through sequentially 
 
 
 ## Example Configuration file
-```
+```Yaml
 
 settings:
   # allow_all: false - default, set to true to allow all connections through the proxy.
@@ -231,7 +231,7 @@ connection:
         - TLSv1_2 
 
 scan_accounts:
-	# Arn of switch role account / region
+	# ARN of switch role account / region
 	- arn:aws:iam::<scan account id>:role/altihex-FPA-switch-role
 	  eu-west-2
 	# Profiles are linked to a specific domain_groups key. 
@@ -278,7 +278,7 @@ reverse_lookup_address_cache:
 
 ## Example Notification Script
 
-```
+```bash
 #!/bin/bash
 
 #################################################################################################
@@ -506,12 +506,161 @@ exit 0
 
 ## Example Appliance IAM Profile
 
-This is written for Open Tofu. This will enable scanning of an account by using a switch role
+``` terraform
+resource "aws_iam_instance_profile" "fpa-instance-profile" {
+  name     = "fpa-instance-profile"
+  role     = aws_iam_role.fpa-iam-role.name
+}
+
+resource "aws_iam_role" "fpa-iam-role" {
+  name     = "fpa-iam-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = ["sts:AssumeRole"]
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "fpa-assume-role" {
+  role       = aws_iam_role.fpa-iam-role.name
+  policy_arn = aws_iam_policy.fpa-assume-role.arn
+}
+
+resource "aws_iam_policy" "fpa-assume-role" {
+  name        = "fpa-assume-role"
+  description = "Allow FPA EC2 to switch roles"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sts:AssumeRole"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "fpa-ec2-permissions" {
+  role       = aws_iam_role.fpa-iam-role.name
+  policy_arn = aws_iam_policy.fpa-ec2-permissions.arn
+}
+
+resource "aws_iam_policy" "fpa-ec2-permissions" {
+  name        = "fpa-ec2-permissions"
+  description = "Allow FPA to read ec2 attributes"
+  policy      = <<EOF 
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [ 
+              "ec2:DescribeAvailabilityZones",
+              "ec2:DescribeInstances",
+              "ec2:DescribeInstanceImageMetadata",
+              "ec2:DescribeAddresses",
+              "ec2:DescribeVpcEndpointConnections"
+            ]
+            "Resource": "*"
+        }
+    ]
+}
+EOF
+}
+
+
+resource "aws_iam_role_policy_attachment" "fpa-cloudwatch-permissions" {
+  role       = aws_iam_role.fpa-iam-role.name
+  policy_arn = aws_iam_policy.fpa-cloudwatch-permissions.arn
+}
+
+resource "aws_iam_policy" "fpa-cloudwatch--permissions" {
+  name        = fpa-cloudwatch-permissions"
+  description = "Allow FPA ec2 to create and write cloudwatch logs"
+  policy      =<<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [ 
+              "logs:CreateLogGroup",
+              "logs:CreateLogStream",
+              "logs:PutLogEvents", 
+              "logs:DescribeLogStreams"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "fpa-s3-permissions" {
+  role       = aws_iam_role.fpa-iam-role.name
+  policy_arn = aws_iam_policy.fpa-s3-permissions.arn
+}
+
+resource "aws_iam_policy" "fpa-s3-permissions" {
+  name        = "fpa-s3-permissions"
+  description = "S3 read only access to the default fpa bucket"
+  policy      =<<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+     "Resource": [
+        "arn:aws:s3:::altihex-fpa-*/*",
+        "arn:aws:s3:::altihex-fpa-*"
+      ]
+    },
+     {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListAllMyBuckets"
+      ],
+      "Resource": "*" 
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectAttributes"     
+      ],
+      "Resource": [
+        "arn:aws:s3:::altihex-fpa-*/*",
+        "arn:aws:s3:::altihex-fpa-*"
+      ]
+    }
+  ]
+}
+EOF
+}
 
 ```
-resource "aws_iam_role" "switch-role-fpa" {
-  provider = aws.switch-destination-account
-  name     = "switch-role-destination-account"
+
+### Example application account IAM permissions
+
+Configure this in each application account. This is an Open Tofu/Terraform Configuration. This will enable scanning of an account by using a switch role. This configures the read only permissions needed for EC2, ECS and EKS nodes. Use the role ARN of the switch-role-fpa in the **scan_accounts:** key to enable configuration of the nodes in the account. 
+
+```terraform
+resource "aws_iam_role" "fpa-switch-role" {
+  name     = "fpa-switch-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -531,15 +680,13 @@ resource "aws_iam_role" "switch-role-fpa" {
 
 
 # Policy attachment
-resource "aws_iam_role_policy_attachment" "switch-role-fpa" {
-  provider   = aws.switch-destination-account
-  role       = aws_iam_role.switch-role-fpa.name
-  policy_arn = aws_iam_policy.scan-permissions.arn
+resource "aws_iam_role_policy_attachment" "fpa-switch-role" {
+  role       = aws_iam_role.fpa-switch-role.name
+  policy_arn = aws_iam_policy.fpa-scan-permissions.arn
 }
 
 # Policy
 resource "aws_iam_policy" "scan-permissions" {
-  provider    = aws.switch-destination-account
   name        = "altihex-fpa-scan-permissions"
   description = "Allow the altihex fpa to scan accounts"
   policy = jsonencode({
@@ -557,8 +704,7 @@ resource "aws_iam_policy" "scan-permissions" {
           "ecs:ListTasks",
           "ecs:DescribeTasks",
           "eks:ListClusters",
-          "eks:DescribeCluster",
-          "eks:ListClusters"
+          "eks:DescribeCluster"
         ],
         Resource = "*"
       }
