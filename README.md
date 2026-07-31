@@ -48,7 +48,7 @@
 
 - Please log all support issues here - [issues](https://github.com/Altihex/Forward-Proxy-Appliance/issues)
 
-- For further support enquiries  email: support@altihex.com
+- For further support enquiries  email: fpa-support@altihex.com
 
 
 ## Restrictions
