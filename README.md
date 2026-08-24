@@ -123,10 +123,11 @@ Cloudwatch Logs are automatically created in the security account for the fpa pr
 
 Configuration of the proxy is controlled with a single configuration yaml file. With no configuration file configured the proxy will fail to start. 
 
+This needs to be put into the root directory of an S3 bucket in the security account as follows, 
 
-This needs to put into the root directory of an S3 bucket in the security account. Default naming conventions:
+The default naming conventions:
 
-- S3 bucket – **altihex-fpa-\<account\_id\>-region**
+- S3 bucket **altihex-fpa-\<account\_id\>-\<region\>**
 
 - configuration file – **config.yaml**
 
